@@ -1,0 +1,9 @@
+[package]
+name = "Q-Sar"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-graphql = "7.0.17"
+tokio = "1.45.1"
+tracing = "0.1.41"
