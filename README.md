@@ -15,10 +15,10 @@ Users will be able to utilize both a REST API and a GraphQL API to access data.
 - Bulma CSS
 
 ## Supported Databases
-- Postgresql
-- MongoDB
-- MySQL
-- SQLite
+- Postgresql (Coming soon...)
+- MongoDB (Coming soon...)
+- MySQL (Coming soon...)
+- SQLite (Coming soon...)
 - SurrealDB
 
 ## Getting Started
