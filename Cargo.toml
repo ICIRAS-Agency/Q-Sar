@@ -5,5 +5,17 @@ edition = "2024"
 
 [dependencies]
 async-graphql = "7.0.17"
-tokio = "1.45.1"
+chrono = "0.4.41"
+dotenv = "0.15.0"
+tokio = { version = "1.45.1", features = [ "full" ] }
 tracing = "0.1.41"
+tracing-appender = "0.2.3"
+tracing-subscriber = "0.3.19"
+
+[[bin]]
+name = "q-sar"
+path = "src/main.rs"
+
+[lib]
+name = "qsar_lib"
+path = "src/lib.rs"
