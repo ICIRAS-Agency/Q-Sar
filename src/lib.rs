@@ -7,8 +7,12 @@ pub mod qsar {
     use std::net::SocketAddr;
     use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt };
     use tokio::net::{ TcpListener, TcpStream };
-    use tracing::Level;
+    use tracing::{Level, Subscriber};
+    use tracing_appender::non_blocking::NonBlocking;
+    use tracing_subscriber::util::SubscriberInitExt;
+    use crate::utils;
     use crate::utils::logger;
+    use crate::utils::logger::init_logger;
 
     // Enums
     #[derive(Debug)]
@@ -109,29 +113,39 @@ pub mod qsar {
     // TODO: Create function that takes incoming connection and filters out the binary data
     async fn handle_connections( mut stream: TcpStream, addr: SocketAddr ) {
         // Buffer
-        let mut buffer = vec![0u8; 2048];
-        stream.read(&mut buffer).await;
+        let mut buffer = vec![ 0u8; 2048 ];
+        stream.read( &mut buffer ).await;
 
         // Read request and collect request headers
-        let req_str = std::str::from_utf8(&buffer); // Contains full request headers
-        let lines: Vec<String> = req_str.unwrap().lines().map(|line| line.to_string()).collect();
-        let req_type: Vec<&str> = lines.first().unwrap().split(" ").collect();
-
+        let req_str = std::str::from_utf8( &buffer ); // Contains full request headers
+        let lines: Vec< String > = req_str.unwrap().lines().map( | line | line.to_string() ).collect();
+        let req_type: Vec< &str > = lines.first().unwrap().split( " " ).collect();
+        
+        match HttpType::from( req_type.get( 2 ).unwrap().to_string().as_str() ) {
+            HttpType::HTTP => {},
+            HttpType::HTTPS => {}
+        }
+        
         // TODO: Route requests to the right resource
-        match HttpMethod::from(req_type[0]) {
+        match HttpMethod::from( req_type.get( 0 ).unwrap().to_string().as_str() ) {
             HttpMethod::GET => {
-                println!("Got GET from {}", &addr);
+                // FIXME: Writing "works" but only once, this is because the write_access_log keeps trying to set global subscriber with each call, which errors the logger
+                // FIXME: Find a way to spawn subscriber only ONCE and then write new logs which each call
+                logger::write_access_log(format!( "Got GET from {}", &addr ), &HttpType::HTTP, &HttpMethod::GET ).await;
+                println!( "Got GET from {}", &addr );
             },
             HttpMethod::POST => {
-                println!("Got POST from {}", &addr);
+                println!( "Got POST from {}", &addr );
             },
             HttpMethod::PUT => {
-                println!("Got PUT from {}", &addr);
+                println!( "Got PUT from {}", &addr );
             },
             HttpMethod::DELETE => {
-                println!("Got DELETE from {}", &addr);
+                println!( "Got DELETE from {}", &addr );
             },
-            _ => { println!("Not supported HTTP method: {}", req_type[0]); }
+            _ => { 
+                println!( "Not supported HTTP method: {}", req_type[ 0 ] ); 
+            }
         }
     }
 }
