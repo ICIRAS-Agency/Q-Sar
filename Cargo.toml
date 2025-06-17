@@ -8,7 +8,7 @@ async-graphql = "7.0.17"
 chrono = "0.4.41"
 dotenv = "0.15.0"
 tokio = { version = "1.45.1", features = [ "full" ] }
-tracing = { version =  "0.1.41", default-features = false, features = [ "log-always", "std", "tracing-attributes" ] }
+tracing = { version =  "0.1.41", default-features = false, features = [ "log-always", "std", "attributes" ] }
 tracing-appender = "0.2.3"
 tracing-subscriber = "0.3.19"
 
