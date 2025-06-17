@@ -1,4 +1,4 @@
-mod utils;
+pub mod utils;
 
 pub mod qsar {
     // Dependencies
@@ -12,7 +12,7 @@ pub mod qsar {
     use tracing_subscriber::util::SubscriberInitExt;
     use crate::utils;
     use crate::utils::logger;
-    use crate::utils::logger::init_logger;
+    use crate::utils::logger::{init_logger, write_events_log};
 
     // Enums
     #[derive(Debug)]
@@ -77,14 +77,14 @@ pub mod qsar {
 
     // Create server
     pub async fn create_server( host: &str, port: u16 ) -> Result< TcpListener, Box< dyn std::error::Error > > {
-        println!( "Creating server and binding it to {}:{}.", &host, &port );
+        // Init server
+        write_events_log( &format!( "Creating server and binding it to {}:{}.", &host, &port ), Level::INFO ).await;
         let full_host = format!( "{}:{}", host, port );
         let listener: Result< TcpListener, _ > = TcpListener::bind( &full_host ).await;
-        logger::init_logger();
 
         match listener {
             Ok( tcpl ) => {
-                println!("Server started successfully!");
+                write_events_log( "Server started successfully!", Level::INFO ).await;
                 Ok(tcpl)
             },
             Err( e ) => Err( Box::new( e ) )
@@ -94,8 +94,8 @@ pub mod qsar {
 
     // Bind server and listen for incoming requests
     pub async fn listen( listener: TcpListener ) {
-        println!("Listening on {}", &listener.local_addr().unwrap());
-        
+        write_events_log( &format!( "Listening on {}", &listener.local_addr().unwrap() ), Level::INFO ).await;
+
         loop {
             match listener.accept().await {
                 Ok( ( tcp_stream, addr ) ) => {
@@ -104,7 +104,7 @@ pub mod qsar {
                    } );
                 },
                 Err(e) => {
-                    eprintln!("Error accepting connection: {}", e);
+                    eprintln!( "Error accepting connection: {}", e );
                 }
             }
         }
@@ -118,33 +118,42 @@ pub mod qsar {
 
         // Read request and collect request headers
         let req_str = std::str::from_utf8( &buffer ); // Contains full request headers
-        let lines: Vec< String > = req_str.unwrap().lines().map( | line | line.to_string() ).collect();
-        let req_type: Vec< &str > = lines.first().unwrap().split( " " ).collect();
-        
-        match HttpType::from( req_type.get( 2 ).unwrap().to_string().as_str() ) {
-            HttpType::HTTP => {},
-            HttpType::HTTPS => {}
+        let mut lines: Vec< String > = Vec::new();
+        match req_str {
+            Ok( line ) => {
+                lines = line.lines().map( | line | line.to_string() ).collect();
+            },
+            Err( e ) => {
+                eprintln!( "Error reading request: {}", e );
+            }
         }
+        // First header containing METHOD, PATH and HTTP version
+        let req_first: Vec< &str > = lines.first().expect( "First index value should not be empty" ).split( " " ).collect();
         
-        // TODO: Route requests to the right resource
-        match HttpMethod::from( req_type.get( 0 ).unwrap().to_string().as_str() ) {
+        // TODO: Route requests to the right resource + Write a match to check for HTTP / HTTPS
+        match HttpMethod::from( req_first.get( 0 ).unwrap().to_string().as_str() ) {
             HttpMethod::GET => {
-                // FIXME: Writing "works" but only once, this is because the write_access_log keeps trying to set global subscriber with each call, which errors the logger
-                // FIXME: Find a way to spawn subscriber only ONCE and then write new logs which each call
-                logger::write_access_log(format!( "Got GET from {}", &addr ), &HttpType::HTTP, &HttpMethod::GET ).await;
-                println!( "Got GET from {}", &addr );
+                logger::write_access_log(format!( "{}\t{}", &addr, req_first.get( 1 ).unwrap() ), String::from( "HTTP" ), String::from("GET" ) ).await;
+                println!( "[HTTP] - [GET]\t{}\t{}", &addr, req_first.get( 1 ).unwrap() );
             },
             HttpMethod::POST => {
-                println!( "Got POST from {}", &addr );
+                logger::write_access_log(format!( "{}\t{}", &addr, req_first.get( 1 ).unwrap() ), String::from( "HTTP" ), String::from("POST" ) ).await;
+                println!( "[HTTP] - [POST]\t{}\t{}", &addr, req_first.get( 1 ).unwrap() );
             },
             HttpMethod::PUT => {
-                println!( "Got PUT from {}", &addr );
+                logger::write_access_log(format!( "{}\t{}", &addr, req_first.get( 1 ).unwrap() ), String::from( "HTTP" ), String::from("PUT" ) ).await;
+                println!( "[HTTP] - [PUT]\t{}\t{}", &addr, req_first.get( 1 ).unwrap() );
             },
+            HttpMethod::PATCH => {
+                logger::write_access_log(format!( "{}\t{}", &addr, req_first.get( 1 ).unwrap() ), String::from( "HTTP" ), String::from("PATCH" ) ).await;
+                println!( "[HTTP] - [PATCH]\t{}\t{}", &addr, req_first.get( 1 ).unwrap() );
+            }
             HttpMethod::DELETE => {
-                println!( "Got DELETE from {}", &addr );
+                logger::write_access_log(format!( "{}\t{}", &addr, req_first.get( 1 ).unwrap() ), String::from( "HTTP" ), String::from("DELETE" ) ).await;
+                println!( "[HTTP] - [DELETE]\t{}\t{}", &addr, req_first.get( 1 ).unwrap() );
             },
-            _ => { 
-                println!( "Not supported HTTP method: {}", req_type[ 0 ] ); 
+            _ => {
+                println!( "Not supported HTTP method: {}", req_first[ 0 ] );
             }
         }
     }
