@@ -55,7 +55,7 @@ pub fn init_logger() -> LoggerGuards {
         .with_ansi( false )
         .with_level( true )
         .with_target( false )
-        .with_filter( multi_levels_filter );
+        .with_filter( multi_levels_filter);
     let debug_file_layer = tracing_subscriber::fmt::layer()
         .with_writer( non_blocking_debug )
         .with_ansi( false )
@@ -83,7 +83,6 @@ pub async fn write_access_log( message: String, http_type: String, http_method: 
     tracing::trace!( "[{}] - [{}]\t{}", http_type, http_method, message );
 }
 
-// TODO: Fix writing to file
 // Write Error and Warnings to incidents_{date} file
 pub async fn write_events_log( message: &str, log_type: Level ) {
     match log_type {
@@ -102,7 +101,6 @@ pub async fn write_events_log( message: &str, log_type: Level ) {
     }
 }
 
-// TODO: Add writing to debug file
 // Write Debug information to bug_rapport_{data} file
 pub async fn write_debug_log( message: String ) {
     tracing::debug!( "{}", message );
