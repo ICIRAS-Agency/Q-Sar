@@ -19,6 +19,7 @@ dependencies = [
  "async-graphql",
  "chrono",
  "dotenv",
+ "serde",
  "tokio",
  "tracing",
  "tracing-appender",

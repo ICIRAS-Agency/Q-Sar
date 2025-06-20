@@ -1,4 +1,5 @@
 pub mod utils;
+pub mod api;
 
 pub mod qsar {
     // Dependencies
@@ -13,6 +14,7 @@ pub mod qsar {
     use crate::utils;
     use crate::utils::logger;
     use crate::utils::logger::{init_logger, write_events_log};
+    use crate::api::router;
 
     // Enums
     #[derive(Debug)]
@@ -110,7 +112,7 @@ pub mod qsar {
         }
     }
 
-    // TODO: Create function that takes incoming connection and filters out the binary data
+    // Handle connections
     async fn handle_connections( mut stream: TcpStream, addr: SocketAddr ) {
         // Buffer
         let mut buffer = vec![ 0u8; 2048 ];
@@ -118,42 +120,25 @@ pub mod qsar {
 
         // Read request and collect request headers
         let req_str = std::str::from_utf8( &buffer ); // Contains full request headers
-        let mut lines: Vec< String > = Vec::new();
+        let mut request: Vec< String > = Vec::new();
         match req_str {
             Ok( line ) => {
-                lines = line.lines().map( | line | line.to_string() ).collect();
+                request  = line.lines().map( | line | line.to_string() ).collect();
             },
             Err( e ) => {
                 eprintln!( "Error reading request: {}", e );
             }
         }
-        // First header containing METHOD, PATH and HTTP version
-        let req_first: Vec< &str > = lines.first().expect( "First index value should not be empty" ).split( " " ).collect();
         
-        // TODO: Route requests to the right resource + Write a match to check for HTTP / HTTPS
-        match HttpMethod::from( req_first.get( 0 ).unwrap().to_string().as_str() ) {
-            HttpMethod::GET => {
-                logger::write_access_log(format!( "{}\t{}", &addr, req_first.get( 1 ).unwrap() ), String::from( "HTTP" ), String::from("GET" ) ).await;
-                println!( "[HTTP] - [GET]\t{}\t{}", &addr, req_first.get( 1 ).unwrap() );
+        // If request ok send back 200 series HTTP code, else 400 series HTTP code
+        match router::route( request, addr ).await {
+            Ok( code ) => {
+                let response = format!( "HTTP/1.1 {} OK\r\n\r\n", code );
+                stream.write_all( response.as_bytes() ).await;
             },
-            HttpMethod::POST => {
-                logger::write_access_log(format!( "{}\t{}", &addr, req_first.get( 1 ).unwrap() ), String::from( "HTTP" ), String::from("POST" ) ).await;
-                println!( "[HTTP] - [POST]\t{}\t{}", &addr, req_first.get( 1 ).unwrap() );
-            },
-            HttpMethod::PUT => {
-                logger::write_access_log(format!( "{}\t{}", &addr, req_first.get( 1 ).unwrap() ), String::from( "HTTP" ), String::from("PUT" ) ).await;
-                println!( "[HTTP] - [PUT]\t{}\t{}", &addr, req_first.get( 1 ).unwrap() );
-            },
-            HttpMethod::PATCH => {
-                logger::write_access_log(format!( "{}\t{}", &addr, req_first.get( 1 ).unwrap() ), String::from( "HTTP" ), String::from("PATCH" ) ).await;
-                println!( "[HTTP] - [PATCH]\t{}\t{}", &addr, req_first.get( 1 ).unwrap() );
-            }
-            HttpMethod::DELETE => {
-                logger::write_access_log(format!( "{}\t{}", &addr, req_first.get( 1 ).unwrap() ), String::from( "HTTP" ), String::from("DELETE" ) ).await;
-                println!( "[HTTP] - [DELETE]\t{}\t{}", &addr, req_first.get( 1 ).unwrap() );
-            },
-            _ => {
-                println!( "Not supported HTTP method: {}", req_first[ 0 ] );
+            Err( e ) => {
+                let response = format!( "HTTP/1.1 {} Bad Request\r\n\r\n", e );
+                stream.write_all( response.as_bytes() ).await;
             }
         }
     }
