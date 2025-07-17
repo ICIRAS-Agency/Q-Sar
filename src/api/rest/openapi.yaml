@@ -1,0 +1,66 @@
+openapi: 3.1.1
+info:
+  title: Q-Sar REST API
+  contact:
+    name: ICIRAS Agency
+    url: https://www.iciras.agency
+    email: servicedesk@iciras.agency
+  version: 0.0.1
+paths:
+  /posts:
+    get:
+      tags:
+        - POSTS
+      summary: Get all Posts
+      responses:
+        200:
+          description: Retrieve a JSON formatted response of all posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: ed1a4x5sz98cvf2
+                    date_created:
+                      type: string
+                      format: date-time
+                    title:
+                      type: string
+                      example: My First Post
+    post:
+      tags:
+        - POSTS
+      summary: Create a new Post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Example Post Title
+      responses:
+        200:
+          description: Create a single post
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: dfo8dz64a3q4f6e
+  /users:
+    get:
+      tags:
+        - USERS
+      responses:
+        200:
+          description: Get all users registered in the database
